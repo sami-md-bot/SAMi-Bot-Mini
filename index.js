@@ -73,6 +73,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const os = require('os');
+const http = require('http'); // Added for Render Port Fix
 
 // Remove Puppeteer cache (if some dependency downloaded Chromium into ~/.cache/puppeteer)
 function cleanupPuppeteerCache() {
@@ -585,5 +586,20 @@ process.on('unhandledRejection', (err) => {
 
   console.error('Unhandled Rejection:', briefErr(err));
 });
+
+// --- RENDER PORT FIX START ---
+// Render ko port chahiye hota hai warna wo app ko band kar deta hai
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.write('Bot is running smoothly!');
+  res.end();
+});
+
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Web server listening on port ${PORT} for Render`);
+});
+// --- RENDER PORT FIX END ---
+
 // Export store for use in commands
 module.exports = { store };
