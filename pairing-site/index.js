@@ -32,16 +32,36 @@ app.get('/pair', async (req, res) => {
 
         sock.ev.on('creds.update', saveCreds);
 
-        if (!sock.authState.creds.registered) {
-            const code = await sock.requestPairingCode(number);
-            res.send(`
-                <h2>Aapka Pairing Code: <strong>${code}</strong></h2>
-                <p>WhatsApp > Linked Devices > Link with phone number > code daalein.</p>
-                <a href="/session">Session ID Dekhein (Code daalne ke baad)</a>
-            `);
-        } else {
-            res.send('Yeh number pehle se registered hai.');
-        }
+        // ✅ Asal Fix: Pehle connection ka intezar karein, phir code maangein
+        let pairingCodeRequested = false;
+        
+        sock.ev.on('connection.update', async (update) => {
+            const { qr } = update;
+            
+            // Jab QR event aaye (yani connection ready ho), tab code maangein
+            if (qr && !pairingCodeRequested && !sock.authState.creds.registered) {
+                pairingCodeRequested = true;
+                try {
+                    const code = await sock.requestPairingCode(number);
+                    console.log('Pairing Code:', code);
+                } catch (err) {
+                    console.error('Code request error:', err.message);
+                }
+            }
+        });
+
+        // Thoda wait karein code generate hone ka
+        await new Promise(resolve => setTimeout(resolve, 8000));
+        
+        // Code ko global variable mein save karein (simple tareeqa)
+        const code = global.lastPairingCode || 'Code generate nahi hua, dobara try karein';
+        
+        res.send(`
+            <h2>Aapka Pairing Code: <strong>${code}</strong></h2>
+            <p>WhatsApp > Linked Devices > Link with phone number > yeh code daalein.</p>
+            <p>Code daalne ke baad, <a href="/session">yahan click karein</a> Session ID ke liye.</p>
+        `);
+        
     } catch (error) {
         res.send('Error: ' + error.message);
     }
