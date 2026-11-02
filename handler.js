@@ -1009,6 +1009,22 @@ const handleMessage = async (sock, msg) => {
       }
     }
 
+    // 🔹 Auto AI Reply (Bina dot ke direct message par AI reply)
+    if (!msg.key.fromMe && body && !body.startsWith(config.prefix)) {
+      try {
+        const res = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.apiKeys.openai}`, {
+          contents: [{ parts: [{ text: body }] }]
+        });
+        const aiReply = res.data.candidates[0].content.parts[0].text;
+        if (aiReply) {
+          await sock.sendMessage(from, { text: aiReply }, { quoted: msg });
+          return; // Reply dene ke baad ruk jayein
+        }
+      } catch (e) {
+        // Agar error aaye toh chupchap ignore karein taake bot na ruke
+      }
+    }
+
     // Check if message starts with prefix
     if (!body.startsWith(config.prefix)) return;
     
